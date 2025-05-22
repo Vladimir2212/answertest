@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Quick start. Local static application</title>
+</head>
+<body>
+    <div id="name"></div>
+
+    <script src="//api.bitrix24.com/api/v1/"></script>
+    <script>
+        BX24.init(function() {
+                    let responsibleId = '1';
+                    let userPhoneInner = '';
+                     BX24.callMethod(
+                            'telephony.externalCall.searchCrmEntities',
+                            {
+                                'PHONE_NUMBER':'+15555555555'
+                            },
+
+                            function(res){
+                                console.log(res.answer.result);
+                                 if (res.answer && res.answer.result && res.answer.result.length > 0) {
+                                    let entities = res.answer.result;
+                                    let contact = entities.find(e => e.ENTITY_TYPE === 'CONTACT');
+                                    let company = entities.find(e => e.ENTITY_TYPE === 'COMPANY');
+                                    if (contact && contact.RESPONSIBLE_ID) {
+                                        responsibleId = contact.RESPONSIBLE_ID;
+                                        if (contact.USER_PHONE_INNER) {
+                                            userPhoneInner = contact.USER_PHONE_INNER;
+                                        }
+                                    } else {
+                                        if (company && company.RESPONSIBLE_ID) {
+                                            responsibleId = company.RESPONSIBLE_ID;
+                                            if (company.USER_PHONE_INNER) {
+                                                userPhoneInner = company.USER_PHONE_INNER;
+                                            }
+                                        }
+                                    }
+                                    if (!contact && !company) {
+                                        let lead = entities.find(e => e.ENTITY_TYPE === 'LEAD');
+                                        if (lead && lead.RESPONSIBLE_ID) {
+                                            responsibleId = lead.RESPONSIBLE_ID;
+                                            if (lead.USER_PHONE_INNER) {
+                                                userPhoneInner = lead.USER_PHONE_INNER;
+                                            }
+                                        }
+                                    }
+                                    
+                                }
+
+                            }
+                    );
+
+                    BX24.callMethod(
+	                'telephony.externalcall.register',
+                        { 
+                            'USER_ID': responsibleId, 
+                            'USER_PHONE_INNER': '+15551231212', 
+                            'PHONE_NUMBER': '+15555555555', 
+                            'TYPE': 2, 
+                            'CRM_CREATE': 1, 
+                            'SHOW': 1,  
+                            'LINE_NUMBER': '15551234567' 
+                        },
+	                    function(res){
+                            console.log(res.answer.result);
+                            if(res.answer && res.answer.result && res.answer.result.CALL_ID) {
+                                let callId = res.answer.result.CALL_ID;
+                                    BX24.callMethod(
+                                    'telephony.externalcall.finish',
+                                    { 
+                                        'CALL_ID': callId, 
+                                        'USER_ID': responsibleId, 
+                                        'DURATION': '657' },
+                                        function(finishRes) {
+                                            console.log('Длительность звонка:', finishRes.query.data.DURATION);
+                                        }
+                                    );
+
+                            }
+                            
+                            
+                        
+                        }                 
+                    );
+        });
+    </script>
+</body>
+</html>
